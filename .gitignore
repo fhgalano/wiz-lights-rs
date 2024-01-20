@@ -1,0 +1,7 @@
+# Jetbrains Ignores
+.idea/
+
+# Rust Ignores
+/target
+# Carge.lock is ignored only for lib packages
+/Cargo.lock
