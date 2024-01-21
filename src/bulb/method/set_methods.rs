@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct SetPilot {
     pub method: String,
     pub params: SetPilotParams,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct SetPilotParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<bool>,
@@ -24,12 +24,9 @@ pub struct SetPilotParams {
 }
 
 impl SetPilot {
-    pub fn brightness(&mut self, b: u32) {
-        self.params.dimming = Some(b);
-    }
-
-    pub fn on(&mut self) {
+    pub fn on(&mut self) -> &mut Self {
         self.params.state = Some(true);
+        self
     }
 
     pub fn off(&mut self) -> &mut Self {
@@ -37,8 +34,22 @@ impl SetPilot {
         self
     }
 
-    pub fn temperature(&mut self, t: u32) {
+    pub fn brightness(&mut self, b: u32) -> &mut Self {
+        self.params.dimming = Some(b);
+        self
+    }
+
+    pub fn temperature(&mut self, t: u32) -> &mut Self {
         self.params.temp = Some(t);
+        self
+    }
+
+    // todo: update this to use some Color object for more flexibility (maybe implement other color defs + conversions)
+    pub fn color(&mut self, r: u32, g: u32, b: u32) -> &mut Self {
+        self.params.r = Some(r);
+        self.params.g = Some(g);
+        self.params.b = Some(b);
+        self
     }
 }
 
@@ -65,6 +76,7 @@ impl Default for SetPilotParams {
 }
 #[cfg(test)]
 mod tests {
+    use std::ops::Deref;
     use super::*;
     use serde_json;
     use rstest::{rstest, fixture};
@@ -88,5 +100,30 @@ mod tests {
             message,
             expected_message
         );
+    }
+
+    #[rstest]
+    fn test_chain_methods() {
+        let a: SetPilot = SetPilot{ ..Default::default() }
+            .on()
+            .brightness(90)
+            .temperature(4000)
+            .color(255, 255, 255)
+            .to_owned();
+
+        assert_eq!(
+            a,
+            SetPilot {
+                method: String::from("setPilot"),
+                params: SetPilotParams {
+                    state: Some(true),
+                    temp: Some(4000),
+                    dimming: Some(90),
+                    r: Some(255),
+                    g: Some(255),
+                    b: Some(255),
+                }
+            }
+        )
     }
 }
