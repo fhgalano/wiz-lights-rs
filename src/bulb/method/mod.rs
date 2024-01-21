@@ -1,4 +1,4 @@
-pub use set_methods::{SetPilot};
+pub use set_methods::{SetPilot, SetPilotParams};
 
 pub mod get_methods;
 pub mod set_methods;
