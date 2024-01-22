@@ -76,10 +76,9 @@ impl Default for SetPilotParams {
 }
 #[cfg(test)]
 mod tests {
-    use std::ops::Deref;
     use super::*;
     use serde_json;
-    use rstest::{rstest, fixture};
+    use rstest::rstest;
 
     #[rstest]
     #[case(SetPilotParams {state: Some(true), ..Default::default()}, r#"{"method":"setPilot","params":{"state":true}}"#)]

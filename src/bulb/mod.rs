@@ -1,10 +1,8 @@
 use std::io::Error;
-use std::net::{IpAddr, ToSocketAddrs, UdpSocket, SocketAddr, Ipv4Addr};
+use std::net::{IpAddr, UdpSocket, SocketAddr, Ipv4Addr};
 use std::str::from_utf8;
 use std::default::Default;
 
-use serde::{Serialize, Deserialize, Serializer};
-use serde::ser::SerializeStruct;
 use serde_json;
 
 use response::*;
@@ -34,13 +32,13 @@ impl Bulb {
     }
 
     fn get_state(&self) -> bool {
-        self.get_pilot(Some(self.ip_address)).result.state
+        self.get_pilot().result.state
     }
 
-    fn get_pilot(&self, target: Option<IpAddr>) -> GetPilotResponse {
-        let message: &[u8] = r#"{"method":"getPilot","params":{}}"#.as_bytes();
+    fn get_pilot(&self) -> GetPilotResponse {
+        let message = serde_json::to_string(&GetPilot::default()).unwrap();
 
-        self.send_message(message).get_response().unwrap()
+        self.send_message(message.as_bytes()).get_response().unwrap()
     }
 
     fn set_pilot(&self, p: SetPilot) -> SetPilotResponse {
@@ -54,7 +52,7 @@ impl Bulb {
         let sock = give_socket().unwrap();
         let mut buff = [0; 512];
 
-        sock.send_to(message, SocketAddr::new(self.ip_address, 38899));
+        let _ = sock.send_to(message, SocketAddr::new(self.ip_address, 38899));
 
         match sock.recv_from(&mut buff) {
             Ok(received) => {
@@ -122,11 +120,8 @@ mod tests {
 
     #[rstest]
     fn test_get_pilot(test_bulb: Bulb) {
-        let message = test_bulb.get_pilot(None);
+        let message = test_bulb.get_pilot();
         println!("{}", serde_json::to_string_pretty(&message).unwrap());
-
-        let mymessage = test_bulb.get_pilot(Some(test_bulb.ip_address));
-        println!("{}", serde_json::to_string_pretty(&mymessage).unwrap());
 
         assert!(true);
     }
