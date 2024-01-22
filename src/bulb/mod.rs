@@ -20,7 +20,6 @@ pub struct Bulb {
     state: bool, // tbd
 }
 
-
 impl Bulb {
     fn new(ip_address: IpAddr, name: String) -> Bulb {
         Bulb {
@@ -31,21 +30,21 @@ impl Bulb {
         }
     }
 
-    fn get_state(&self) -> bool {
-        self.get_pilot().result.state
+    fn get_state(&self) -> Result<bool, ErrorResponse> {
+        Ok(self.get_pilot()?.result.state)
     }
 
-    fn get_pilot(&self) -> GetPilotResponse {
+    fn get_pilot(&self) -> Result<GetPilotResponse, ErrorResponse> {
         let message = serde_json::to_string(&GetPilot::default()).unwrap();
 
-        self.send_message(message.as_bytes()).get_response().unwrap()
+        self.send_message(message.as_bytes()).get_response()
     }
 
-    fn set_pilot(&self, p: SetPilot) -> SetPilotResponse {
+    fn set_pilot(&self, p: SetPilot) -> Result<SetPilotResponse, ErrorResponse> {
         let m = serde_json::to_string(&p).unwrap();
         let message: &[u8] = m.as_bytes();
 
-        self.send_message(message).set_response().unwrap()
+        self.send_message(message).set_response()
     }
 
     fn send_message(&self, message: &[u8]) -> Response {
@@ -65,7 +64,6 @@ impl Bulb {
             },
         }
     }
-
 }
 
 fn give_socket() -> Result<UdpSocket, Error> {
@@ -76,7 +74,6 @@ fn give_socket() -> Result<UdpSocket, Error> {
 
     Ok(socket)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -93,31 +90,6 @@ mod tests {
         )
     }
 
-    #[test]
-    fn checkstuff() {
-        let sock = give_socket().unwrap();
-        let mut buff = [0; 512];
-        let message: &[u8] = r#"{"method":"getPilot","params":{}}"#.as_bytes();
-        sock.send_to(message, "192.168.68.64:38899").expect("sup");
-
-        let str_message = match sock.recv(&mut buff) {
-            Ok(received) => {
-                let m = &buff[..received];
-                println!("received {received} bytes {:?}", from_utf8(&buff[..received]));
-                m
-            },
-            Err(e) => {
-                println!("recv function failed: {e:?}");
-                panic!("sup");
-            },
-        };
-
-        let message_json: serde_json::Value = serde_json::from_slice(str_message).unwrap();
-        // println!("{}", message_json["result"]["state"]);
-        println!("{}", serde_json::to_string_pretty(&message_json).unwrap())
-
-    }
-
     #[rstest]
     fn test_get_pilot(test_bulb: Bulb) {
         let message = test_bulb.get_pilot();
@@ -127,22 +99,23 @@ mod tests {
     }
 
     #[rstest]
-    fn test_set_pilot(test_bulb: Bulb) {
-        let mymessage = test_bulb.set_pilot(SetPilot{
-            method: String::from("setPilot"),
-            params: SetPilotParams {
-                state: Some(true),
-                ..Default::default()
-            }
-        });
-        println!("{}", serde_json::to_string_pretty(&mymessage).unwrap());
-
-        assert!(true);
+    #[case(SetPilot::default(), r#"{"Err":{"method":"setPilot","error":{"code":-32600,"message":"Invalid Request"}}}"#)]
+    #[case(SetPilot { params: SetPilotParams { state: Some(true), ..Default::default()}, ..Default::default()}, r#"{"Ok":{"method":"setPilot","result":{"success":true}}}"#)]
+    fn test_set_pilot(
+        test_bulb: Bulb,
+        #[case] method: SetPilot,
+        #[case] expected_message: &str
+    ) {
+        let mymessage = test_bulb.set_pilot(method);
+        assert_eq!(
+            serde_json::to_string(&mymessage).unwrap(),
+            expected_message
+        );
     }
 
     #[rstest]
     fn test_get_state(test_bulb: Bulb) {
-        let _ = test_bulb.set_pilot(SetPilot{
+        let _ = test_bulb.set_pilot(SetPilot {
             method: String::from("setPilot"),
             params: SetPilotParams {
                 state: Some(true),
@@ -150,11 +123,11 @@ mod tests {
             }
         });
         let mut state = test_bulb.get_state();
-        assert_eq!(state, true);
+        assert_eq!(state.unwrap(), true);
 
         sleep(Duration::new(2, 0));
 
-        let _ = test_bulb.set_pilot(SetPilot{
+        let _ = test_bulb.set_pilot(SetPilot {
             method: String::from("setPilot"),
             params: SetPilotParams {
                 state: Some(false),
@@ -162,6 +135,6 @@ mod tests {
             }
         });
         state = test_bulb.get_state();
-        assert_eq!(state, false);
+        assert_eq!(state.unwrap(), false);
     }
 }

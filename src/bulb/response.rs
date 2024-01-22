@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 pub struct GetPilotResult {
     pub dimming: Option<u32>,
     pub mac: String,
-    pub temp: u32,
+    pub temp: Option<u32>,
     pub state: bool,
     pub r: Option<u32>
 }
@@ -14,6 +14,11 @@ pub struct SetPilotResult {
     pub success: bool,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ErrorResult {
+    pub code: i32,
+    pub message: String,
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetPilotResponse {
@@ -28,24 +33,45 @@ pub struct SetPilotResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct ErrorResponse {
+    pub method: String,
+    pub error: ErrorResult,
+}
+
+impl Default for ErrorResponse {
+    fn default() -> Self {
+        ErrorResponse {
+            method: "unknown".to_owned(),
+            error: ErrorResult {
+                code: 69,
+                message: "unknown error detected".to_owned(),
+            }
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum Response {
     GR(GetPilotResponse),
     SR(SetPilotResponse),
+    ER(ErrorResponse),
 }
 
 impl Response {
-    pub(crate) fn get_response(self) -> Option<GetPilotResponse> {
+    pub(crate) fn get_response(self) -> Result<GetPilotResponse, ErrorResponse> {
         match self {
-            Response::GR(s) => Some(s),
-            _ => None,
+            Response::GR(s) => Ok(s),
+            Response::ER(s) => Err(s),
+            _ => Err(ErrorResponse::default()),
         }
     }
 
-    pub(crate) fn set_response(self) -> Option<SetPilotResponse> {
+    pub(crate) fn set_response(self) -> Result<SetPilotResponse, ErrorResponse> {
         match self {
-            Response::SR(s) => Some(s),
-            _ => None,
+            Response::SR(s) => Ok(s),
+            Response::ER(s) => Err(s),
+            _ => Err(ErrorResponse::default()),
         }
     }
 }
