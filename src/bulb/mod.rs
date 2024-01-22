@@ -93,8 +93,7 @@ mod tests {
     #[rstest]
     fn test_get_pilot(test_bulb: Bulb) {
         let message = test_bulb.get_pilot();
-        println!("{}", serde_json::to_string_pretty(&message).unwrap());
-
+        println!("{}", serde_json::to_string_pretty(&message.unwrap()).unwrap());
         assert!(true);
     }
 
