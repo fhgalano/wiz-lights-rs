@@ -2,11 +2,18 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetPilotResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dimming: Option<u32>,
     pub mac: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub temp: Option<u32>,
     pub state: bool,
-    pub r: Option<u32>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub g: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub b: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
