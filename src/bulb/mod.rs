@@ -3,28 +3,41 @@ use std::net::{IpAddr, UdpSocket, SocketAddr, Ipv4Addr};
 use std::str::from_utf8;
 use std::default::Default;
 
+use serde::{Deserialize, Serialize};
 use serde_json;
 
+use crate::utils::ip_addr_ser;
 use response::*;
 use method::*;
+use crate::utils::surrealdb_tools::GraphLink;
 
 pub mod response;
 mod method;
 
 
-#[derive(PartialEq)]
+/// we really need to fix the serialization for the IpAddr
+/// This solution definitely works: https://github.com/surrealdb/surrealdb/issues/3301#issuecomment-1890672975
+/// so I should either learn how this works (i.e. implement the (de)serialize logic myself
+/// or try another solution, like using Ipv4Addr for everything
+/// I think I could also figure out a deserialization method for maps to help with surreal
+/// but I think the solution in the link above is the best one since surreal is jank AF apparently
+#[derive(
+    Debug, PartialEq, Clone,
+    Serialize, Deserialize
+)]
 pub struct Bulb {
+    #[serde(with = "ip_addr_ser")]
     ip_address: IpAddr,
-    id: u32,
+    pub _id: u32,
     name: String,
     state: bool, // tbd
 }
 
 impl Bulb {
-    fn new(ip_address: IpAddr, name: String) -> Bulb {
+    pub(crate) fn new(ip_address: IpAddr, name: String, id: u32) -> Bulb {
         Bulb {
             ip_address,
-            id: 12, // fixme
+            _id: id, // fixme
             name,
             state: false, // fixme
         }
@@ -66,6 +79,7 @@ impl Bulb {
     }
 }
 
+
 fn give_socket() -> Result<UdpSocket, Error> {
     // let port: u16 = 8080;
     let socket = UdpSocket::bind("0.0.0.0:0")?;
@@ -76,17 +90,23 @@ fn give_socket() -> Result<UdpSocket, Error> {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use rstest::{rstest, fixture};
     use std::time::Duration;
     use std::thread::sleep;
 
     #[fixture]
-    fn test_bulb(#[default(Ipv4Addr::new(192, 168, 68, 64))] ip: Ipv4Addr) -> Bulb {
+    pub fn test_bulb(
+        #[default(Ipv4Addr::new(192, 168, 68, 64))]
+        ip: Ipv4Addr,
+        #[default(0)]
+        id: u32,
+    ) -> Bulb {
         Bulb::new(
             IpAddr::V4(ip),
-            String::from("tbulb")
+            format!("test_bulb_{}", id),
+            id,
         )
     }
 
@@ -135,5 +155,17 @@ mod tests {
         });
         state = test_bulb.get_state();
         assert_eq!(state.unwrap(), false);
+    }
+
+    #[rstest]
+    fn test_deserialize_bulb(test_bulb: Bulb) {
+        println!("{}", serde_json::to_string(&test_bulb).unwrap());
+
+    }
+
+    #[rstest]
+    fn test_serialize_bulb(test_bulb: Bulb) {
+        let ser_bulb = serde_json::to_string(&test_bulb).unwrap();
+        dbg!(serde_json::from_str::<Bulb>(ser_bulb.as_str()).unwrap());
     }
 }
