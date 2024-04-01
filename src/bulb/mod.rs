@@ -9,7 +9,6 @@ use serde_json;
 use crate::utils::ip_addr_ser;
 use response::*;
 use method::*;
-use crate::utils::surrealdb_tools::GraphLink;
 
 pub mod response;
 mod method;
