@@ -1,4 +1,3 @@
-
 pub mod ip_addr_ser {
     use std::fmt;
     use std::net::IpAddr;
@@ -13,7 +12,7 @@ pub mod ip_addr_ser {
     }
 
     pub fn deserialize<'de, D>(de: D) -> Result<IpAddr, D::Error>
-    where D: Deserializer<'de> {
+        where D: Deserializer<'de> {
         struct IpVisitor;
 
         impl<'de> Visitor<'de> for IpVisitor {
@@ -24,7 +23,7 @@ pub mod ip_addr_ser {
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where E: serde::de::Error
+                where E: serde::de::Error
             {
                 Ok(value.parse().unwrap())
             }
