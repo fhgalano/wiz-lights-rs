@@ -1,3 +1,6 @@
+use std::fmt::Debug;
+use std::any::Any;
+
 use async_trait::async_trait;
 use serde::{Serialize, Deserialize};
 use surrealdb::engine::local::Db;
@@ -7,17 +10,17 @@ use typetag;
 
 #[async_trait]
 #[typetag::serde(tag = "type")]
-pub trait GraphLink: Sync {
+pub trait GraphLink: Sync + Debug {
     async fn link(&self, to_link: &dyn GraphLink, relationship: String, db: &Surreal<Db>) -> surrealdb::Result<()> {
         let query = format!(
-            "RELATE {origin}->{relationship}->{destination}",
+            "RELATE {origin}->{relationship}->{destination};",
             origin=self.query_id_string(),
             destination=to_link.query_id_string()
         );
-        let q = db
+
+        let _ = db
             .query(query.as_str())
             .await?;
-        dbg!(q);
 
         Ok(())
     }
@@ -25,6 +28,17 @@ pub trait GraphLink: Sync {
     fn query_id_string(&self) -> String;
 }
 
-pub trait Store: {
+#[async_trait]
+#[typetag::serde(tag = "type")]
+pub trait GraphStore: GraphLink + Debug + Any {
+    async fn store(&self, db: &Surreal<Db>) -> surrealdb::Result<()>;
+    fn upcast(&self) -> &dyn GraphLink;
+    fn as_any(&self) -> &dyn Any;
+    fn eq(&self, etc: &dyn GraphStore) -> bool;
+}
 
+impl PartialEq for dyn GraphStore {
+    fn eq(&self, other: &Self) -> bool {
+        GraphStore::eq(self, other)
+    }
 }
