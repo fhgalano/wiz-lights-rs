@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use surrealdb::error::Db as SDb;
 use surrealdb::engine::local::Db;
-use surrealdb::sql::{Id, Thing};
+use surrealdb::sql::Id;
 use surrealdb::Surreal;
 use crate::bulb::Bulb;
 
@@ -31,7 +31,7 @@ impl Group {
 
     fn collect(group_id: Id, db: &Surreal<Db>) -> Pin<Box<dyn Future<Output = surrealdb::Result<Group>> + '_>> {
         Box::pin(async move {
-            let mut query = format!(
+            let query = format!(
                 "SELECT ->collect.out FROM group:{id};",
                 id = group_id.to_raw(),
             );
@@ -148,7 +148,7 @@ impl GraphStore for Group {
 mod tests {
     use std::net::Ipv4Addr;
 
-    use rstest::{rstest, fixture};
+    use rstest::rstest;
 
     use crate::bulb::Bulb;
     use crate::registry::tests::create_memory_db;
@@ -223,7 +223,7 @@ mod tests {
 
         test_group.store(&db).await.unwrap();
 
-        let collected_group = Group::collect(Id::from(69), &db).await.unwrap();
+        let collected_group = Group::get(&db, Id::from(69)).await.unwrap();
 
         assert_eq!(test_group, collected_group)
     }

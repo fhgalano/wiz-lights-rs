@@ -2,7 +2,6 @@ use std::fmt::Debug;
 use std::any::Any;
 
 use async_trait::async_trait;
-use serde::{Serialize, Deserialize};
 use surrealdb::engine::local::Db;
 use surrealdb::Surreal;
 use typetag;
@@ -24,7 +23,6 @@ pub trait GraphLink: Sync + Debug {
 
         Ok(())
     }
-    // fn retrieve<T: GraphLink>(self, db: &Surreal<Db>) -> surrealdb::Result<T>;
     fn query_id_string(&self) -> String;
 }
 

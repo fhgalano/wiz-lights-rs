@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::future::Future;
 use async_trait::async_trait;
 use surrealdb::engine::local::Db;
 use surrealdb::sql::Id;
@@ -56,7 +55,7 @@ impl GraphStore for Bulb {
 mod tests {
     use std::net::Ipv4Addr;
 
-    use rstest::{rstest, fixture};
+    use rstest::rstest;
 
     use crate::bulb::Bulb;
     use crate::registry::tests::create_memory_db;
