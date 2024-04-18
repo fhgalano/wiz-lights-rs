@@ -97,7 +97,7 @@ pub mod tests {
 
     #[fixture]
     pub fn test_bulb(
-        #[default(Ipv4Addr::new(192, 168, 68, 64))]
+        #[default(Ipv4Addr::new(192, 168, 68, 54))]
         ip: Ipv4Addr,
         #[default(0)]
         id: u32,
