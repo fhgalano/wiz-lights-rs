@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::any::Any;
 
 use async_trait::async_trait;
-use surrealdb::engine::local::Db;
+use surrealdb::engine::any;
 use surrealdb::Surreal;
 use typetag;
 
@@ -29,7 +29,7 @@ pub trait GraphLink: Sync + Debug {
 #[async_trait]
 #[typetag::serde(tag = "type")]
 pub trait GraphStore: GraphLink + Debug + Any {
-    async fn store(&self, db: &Surreal<Db>) -> surrealdb::Result<()>;
+    async fn store(&self, db: &Surreal<any::Any>) -> surrealdb::Result<()>;
     fn upcast(&self) -> &dyn GraphLink;
     fn as_any(&self) -> &dyn Any;
     fn eq(&self, etc: &dyn GraphStore) -> bool;

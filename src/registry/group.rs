@@ -4,7 +4,7 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use surrealdb::error::Db as SDb;
-use surrealdb::engine::local::Db;
+use surrealdb::engine::any;
 use surrealdb::sql::Id;
 use surrealdb::Surreal;
 use crate::bulb::Bulb;
@@ -29,7 +29,7 @@ impl Group {
         }
     }
 
-    fn collect(group_id: Id, db: &Surreal<Db>) -> Pin<Box<dyn Future<Output = surrealdb::Result<Group>> + '_>> {
+    pub fn collect(group_id: Id, db: &Surreal<any::Any>) -> Pin<Box<dyn Future<Output = surrealdb::Result<Group>> + '_>> {
         Box::pin(async move {
             let query = format!(
                 "SELECT ->collect.out FROM group:{id};",
@@ -65,7 +65,7 @@ impl Group {
         })
     }
 
-    async fn get(db: &Surreal<Db>, id: Id) -> surrealdb::Result<Group> {
+    async fn get(db: &Surreal<any::Any>, id: Id) -> surrealdb::Result<Group> {
         Group::collect(id, db).await
     }
 }
@@ -101,7 +101,7 @@ impl GraphLink for Group {
 #[async_trait]
 #[typetag::serde]
 impl GraphStore for Group {
-    async fn store(&self, db: &Surreal<Db>) -> surrealdb::Result<()> {
+    async fn store(&self, db: &Surreal<any::Any>) -> surrealdb::Result<()> {
         let query = format!(
             "CREATE {tb_id} SET name = \"{name}\";",
             tb_id = self.query_id_string(),
@@ -151,7 +151,7 @@ mod tests {
     use rstest::rstest;
 
     use crate::bulb::Bulb;
-    use crate::registry::tests::create_memory_db;
+    use crate::registry::tests::connect_to_memory_db;
     use crate::bulb::tests::test_bulb;
 
     use super::*;
@@ -167,7 +167,7 @@ mod tests {
         #[with(Ipv4Addr::new(192, 168, 68, 01), 2)]
         b2: Bulb,
     ) {
-        let db = create_memory_db().await;
+        let db = connect_to_memory_db().await;
 
         db.use_ns("test").use_db("test").await.unwrap();
 
@@ -203,7 +203,7 @@ mod tests {
         #[with(Ipv4Addr::new(192, 168, 68, 01), 4)]
         b4: Bulb,
     ) {
-        let db = create_memory_db().await;
+        let db = connect_to_memory_db().await;
 
         db.use_ns("test").use_db("test").await.unwrap();
 
