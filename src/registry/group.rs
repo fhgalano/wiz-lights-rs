@@ -1,20 +1,23 @@
 use std::any::Any;
 use std::future::Future;
 use std::pin::Pin;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use surrealdb::error::Db as SDb;
 use surrealdb::engine::any;
 use surrealdb::sql::Id;
 use surrealdb::Surreal;
-use crate::bulb::Bulb;
 
+use crate::bulb::Bulb;
+use crate::bulb::response::ErrorResponse;
+use crate::function::{Off, On};
 use crate::registry::Out;
 use crate::registry::surreal::{GraphStore, GraphLink};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Group {
-    _id: Id,
+    pub _id: Id,
     name: String,
     #[serde(skip)]
     collects: Vec<Box<dyn GraphStore>>,
@@ -87,6 +90,26 @@ impl PartialEq for Group {
         }
 
         return true
+    }
+}
+
+impl On for Group {
+    fn on(&self) -> Result<bool, ErrorResponse> {
+        for i in self.collects.iter().clone() {
+            i.on()?;
+        }
+
+        Ok(true)
+    }
+}
+
+impl Off for Group {
+    fn off(&self) -> Result<bool, ErrorResponse> {
+        for i in self.collects.iter().clone() {
+            i.off()?;
+        }
+
+        Ok(true)
     }
 }
 
@@ -226,5 +249,25 @@ mod tests {
         let collected_group = Group::get(&db, Id::from(69)).await.unwrap();
 
         assert_eq!(test_group, collected_group)
+    }
+
+    #[rstest] fn test_group_off(test_bulb: Bulb) {
+        let g = Group::new(
+            Id::from(22),
+            "deez".to_string(),
+            vec!(Box::new(test_bulb)),
+        );
+
+        g.off();
+    }
+
+    #[rstest] fn test_group_on(test_bulb: Bulb) {
+        let g = Group::new(
+            Id::from(22),
+            "deez".to_string(),
+            vec!(Box::new(test_bulb)),
+        );
+
+        g.on();
     }
 }
