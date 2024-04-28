@@ -5,12 +5,18 @@ use async_trait::async_trait;
 use surrealdb::engine::any;
 use surrealdb::Surreal;
 use typetag;
+use url::Url;
+use crate::function::{Off, On};
 
+
+pub async fn connect_to_db(url: Url) -> Surreal<any::Any> {
+    any::connect(url.as_str()).await.unwrap()
+}
 
 #[async_trait]
 #[typetag::serde(tag = "type")]
-pub trait GraphLink: Sync + Debug {
-    async fn link(&self, to_link: &dyn GraphLink, relationship: String, db: &Surreal<Db>) -> surrealdb::Result<()> {
+pub trait GraphLink: Sync + Debug + Off + On {
+    async fn link(&self, to_link: &dyn GraphLink, relationship: String, db: &Surreal<any::Any>) -> surrealdb::Result<()> {
         let query = format!(
             "RELATE {origin}->{relationship}->{destination};",
             origin=self.query_id_string(),
