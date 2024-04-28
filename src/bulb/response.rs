@@ -66,6 +66,12 @@ impl Default for ErrorResponse {
     }
 }
 
+impl fmt::Display for ErrorResponse {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "method: {} - {}", self.method, self.error)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 pub enum Response {
