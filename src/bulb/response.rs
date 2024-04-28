@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::Formatter;
+
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,6 +28,12 @@ pub struct SetPilotResult {
 pub struct ErrorResult {
     pub code: i32,
     pub message: String,
+}
+
+impl fmt::Display for ErrorResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "code: {} - message: {}", self.code, self.message)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
