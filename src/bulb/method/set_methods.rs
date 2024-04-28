@@ -24,13 +24,8 @@ pub struct SetPilotParams {
 }
 
 impl SetPilot {
-    pub fn on(&mut self) -> &mut Self {
-        self.params.state = Some(true);
-        self
-    }
-
-    pub fn off(&mut self) -> &mut Self {
-        self.params.state = Some(false);
+    pub fn state(&mut self, state: bool) -> &mut Self {
+        self.params.state = Some(state);
         self
     }
 
@@ -74,6 +69,7 @@ impl Default for SetPilotParams {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -104,7 +100,7 @@ mod tests {
     #[rstest]
     fn test_chain_methods() {
         let a: SetPilot = SetPilot{ ..Default::default() }
-            .on()
+            .state(true)
             .brightness(90)
             .temperature(4000)
             .color(255, 255, 255)

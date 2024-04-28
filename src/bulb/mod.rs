@@ -9,6 +9,7 @@ use serde_json;
 use crate::utils::ip_addr_ser;
 use response::*;
 use method::*;
+pub use crate::function::{Off, On};
 
 pub mod response;
 mod method;
@@ -78,6 +79,33 @@ impl Bulb {
     }
 }
 
+impl On for Bulb {
+    fn on(&self) -> Result<bool, ErrorResponse> {
+        let response = self.set_pilot(SetPilot {
+            method: String::from("setPilot"),
+            params: SetPilotParams {
+                state: Some(true),
+                ..Default::default()
+            }
+        })?;
+
+        Ok(response.result.success)
+    }
+}
+
+impl Off for Bulb {
+    fn off(&self) -> Result<bool, ErrorResponse> {
+        let response = self.set_pilot(SetPilot {
+            method: String::from("setPilot"),
+            params: SetPilotParams {
+                state: Some(false),
+                ..Default::default()
+            }
+        })?;
+
+        Ok(response.result.success)
+    }
+}
 
 fn give_socket() -> Result<UdpSocket, Error> {
     // let port: u16 = 8080;
@@ -166,5 +194,15 @@ pub mod tests {
     fn test_serialize_bulb(test_bulb: Bulb) {
         let ser_bulb = serde_json::to_string(&test_bulb).unwrap();
         dbg!(serde_json::from_str::<Bulb>(ser_bulb.as_str()).unwrap());
+    }
+
+    #[rstest]
+    fn test_bulb_on(test_bulb: Bulb) {
+        test_bulb.on();
+    }
+
+    #[rstest]
+    fn test_bulb_off(test_bulb: Bulb) {
+        test_bulb.off();
     }
 }
