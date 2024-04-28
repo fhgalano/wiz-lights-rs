@@ -168,10 +168,10 @@ impl GraphStore for Group {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::net::Ipv4Addr;
 
-    use rstest::rstest;
+    use rstest::{rstest, fixture};
 
     use crate::bulb::Bulb;
     use crate::registry::tests::connect_to_memory_db;
@@ -179,7 +179,25 @@ mod tests {
 
     use super::*;
 
+    
+    #[fixture]
+    pub fn test_collect(test_bulb: Bulb) -> Vec<Box<dyn GraphStore>> {
+        vec![Box::new(test_bulb)]
+    }
 
+    #[fixture]
+    pub fn test_group(
+        #[default(Id::from(69))]
+        id: Id,
+        test_collect: Vec<Box<dyn GraphStore>>,
+    ) -> Group {
+        Group::new(
+            id.clone(),
+            format!("test_group_{}", &id),
+            test_collect,
+        )
+    }
+    
     #[rstest]
     #[tokio::test]
     async fn test_store_get_group(
