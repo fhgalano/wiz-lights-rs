@@ -15,7 +15,6 @@ use crate::bulb::Bulb;
 use crate::function::*;
 use group::Group;
 use surreal::{connect_to_db, GraphStore};
-use crate::bulb::response::ErrorResponse;
 use crate::function::FunctionError;
 
 
@@ -169,9 +168,8 @@ async fn get_groups_from_db(db: &Surreal<Any>) -> surrealdb::Result<Vec<Group>> 
 pub mod tests {
     // use std::net::{IpAddr, Ipv4Addr};
     use super::*;
-    use rstest::{rstest, fixture};
+    use rstest::rstest;
     use surrealdb::Surreal;
-    use surrealdb::engine::local::{Db, Mem};
     use surrealdb::engine::any::Any;
     use crate::bulb::tests::test_bulb;
     use crate::registry::group::tests::test_group;
