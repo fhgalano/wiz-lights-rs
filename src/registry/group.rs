@@ -179,7 +179,7 @@ pub(crate) mod tests {
 
     use super::*;
 
-    
+
     #[fixture]
     pub fn test_collect(test_bulb: Bulb) -> Vec<Box<dyn GraphStore>> {
         vec![Box::new(test_bulb)]
@@ -197,7 +197,7 @@ pub(crate) mod tests {
             test_collect,
         )
     }
-    
+
     #[rstest]
     #[tokio::test]
     async fn test_store_get_group(

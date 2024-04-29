@@ -12,7 +12,7 @@ use method::*;
 pub use crate::function::{Off, On};
 
 pub mod response;
-mod method;
+pub(crate) mod method;
 
 
 /// we really need to fix the serialization for the IpAddr
@@ -43,17 +43,17 @@ impl Bulb {
         }
     }
 
-    fn get_state(&self) -> Result<bool, ErrorResponse> {
+    pub fn get_state(&self) -> Result<bool, ErrorResponse> {
         Ok(self.get_pilot()?.result.state)
     }
 
-    fn get_pilot(&self) -> Result<GetPilotResponse, ErrorResponse> {
+    pub fn get_pilot(&self) -> Result<GetPilotResponse, ErrorResponse> {
         let message = serde_json::to_string(&GetPilot::default()).unwrap();
 
         self.send_message(message.as_bytes()).get_response()
     }
 
-    fn set_pilot(&self, p: SetPilot) -> Result<SetPilotResponse, ErrorResponse> {
+    pub fn set_pilot(&self, p: SetPilot) -> Result<SetPilotResponse, ErrorResponse> {
         let m = serde_json::to_string(&p).unwrap();
         let message: &[u8] = m.as_bytes();
 
@@ -125,7 +125,7 @@ pub mod tests {
 
     #[fixture]
     pub fn test_bulb(
-        #[default(Ipv4Addr::new(192, 168, 68, 54))]
+        #[default(Ipv4Addr::new(192, 168, 68, 58))]
         ip: Ipv4Addr,
         #[default(0)]
         id: u32,
