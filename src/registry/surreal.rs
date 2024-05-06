@@ -34,7 +34,7 @@ pub trait GraphLink: Sync + Debug + Off + On {
 
 #[async_trait]
 #[typetag::serde(tag = "type")]
-pub trait GraphStore: GraphLink + Debug + Any {
+pub trait GraphStore: GraphLink + Debug + Any + Send {
     async fn store(&self, db: &Surreal<any::Any>) -> surrealdb::Result<()>;
     fn upcast(&self) -> &dyn GraphLink;
     fn as_any(&self) -> &dyn Any;
