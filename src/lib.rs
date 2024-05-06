@@ -1,4 +1,4 @@
 pub mod bulb;
-mod registry;
+pub mod registry;
 mod utils;
 mod function;

@@ -14,7 +14,7 @@ use url::Url;
 use crate::bulb::Bulb;
 use crate::function::*;
 use group::Group;
-use surreal::{connect_to_db, GraphStore};
+pub use surreal::{connect_to_db, GraphStore};
 use crate::function::FunctionError;
 
 
@@ -44,7 +44,7 @@ pub struct Registry {
 }
 
 impl Registry {
-    async fn new(db: Surreal<Any>) -> Registry {
+    pub async fn new(db: Surreal<Any>) -> Registry {
         db.use_ns("test").use_db("test").await.unwrap(); // todo: proper namespaces
         
         let bulbs = get_bulbs_from_db(&db).await.unwrap();
@@ -57,13 +57,13 @@ impl Registry {
         }
     }
     
-    async fn new_from_url(url: Url) -> Registry {
+    pub async fn new_from_url(url: Url) -> Registry {
         let db = connect_to_db(url).await;
 
         Registry::new(db).await
     }
     
-    async fn add(&mut self, item: Box<dyn GraphStore>) -> surrealdb::Result<()> {
+    pub async fn add(&mut self, item: Box<dyn GraphStore>) -> surrealdb::Result<()> {
         match item.store(&self.db).await {
             Ok(_) => {
                 let tr = Registry::new(self.db.clone()).await;
@@ -76,7 +76,7 @@ impl Registry {
         Ok(())
     }
 
-    fn turn_on_by_id(&self, id: Id) -> Result<bool, FunctionError> {
+    pub fn turn_on_by_id(&self, id: Id) -> Result<bool, FunctionError> {
         for i in self.bulbs.iter().clone() {
             if Id::from(i._id.clone() as i32) == id {
                 return i.on().map_err(|e| {
@@ -107,7 +107,7 @@ impl Registry {
         ))
     }
 
-    fn turn_off_by_id(&self, id: Id) -> Result<bool, FunctionError> {
+    pub fn turn_off_by_id(&self, id: Id) -> Result<bool, FunctionError> {
         for i in self.bulbs.iter().clone() {
             if Id::from(i._id.clone() as i32) == id {
                 return i.off().map_err(|e| {

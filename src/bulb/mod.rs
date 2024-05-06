@@ -34,7 +34,7 @@ pub struct Bulb {
 }
 
 impl Bulb {
-    pub(crate) fn new(ip_address: IpAddr, name: String, id: u32) -> Bulb {
+    pub fn new(ip_address: IpAddr, name: String, id: u32) -> Bulb {
         Bulb {
             ip_address,
             _id: id, // fixme
