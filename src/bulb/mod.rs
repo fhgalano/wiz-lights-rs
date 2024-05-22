@@ -29,8 +29,8 @@ pub struct Bulb {
     #[serde(with = "ip_addr_ser")]
     ip_address: IpAddr,
     pub _id: u32,
-    name: String,
-    state: bool, // tbd
+    pub name: String,
+    pub state: bool, // tbd
 }
 
 impl Bulb {

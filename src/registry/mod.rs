@@ -75,6 +75,16 @@ impl Registry {
         
         Ok(())
     }
+    
+    pub fn find_bulb_by_name(&self, name: String) -> Result<Bulb, GeneralError> {
+        for i in self.bulbs.iter() {
+            if i.name == name {
+                return Ok(i.clone())
+            }
+        }
+        
+        Err(GeneralError{msg: "Unable to find bulb by name".to_string()})
+    }
 
     pub fn turn_on_by_id(&self, id: Id) -> Result<bool, FunctionError> {
         for i in self.bulbs.iter().clone() {
@@ -191,6 +201,22 @@ pub mod tests {
         let t_registry = Registry::new_from_url(url).await;
 
         dbg!(t_registry);
+    }
+    
+    #[rstest]
+    #[tokio::test]
+    async fn test_find_bulb_by_name(test_bulb: Bulb) {
+        let registry = Registry {
+            db: create_memory_db().await,
+            bulbs: vec![test_bulb.clone()],
+            groups: vec![],
+        };
+        
+        assert_eq!(
+            registry.find_bulb_by_name("test_bulb_0".to_string()).unwrap(),
+            test_bulb
+        )
+            
     }
 
     #[rstest]
