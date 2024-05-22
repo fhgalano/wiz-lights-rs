@@ -19,7 +19,6 @@ use crate::registry::surreal::{GraphStore, GraphLink};
 pub struct Group {
     pub _id: Id,
     name: String,
-    #[serde(skip)]
     collects: Vec<Box<dyn GraphStore>>,
 }
 
@@ -288,4 +287,16 @@ pub(crate) mod tests {
 
         assert!(g.on().unwrap());
     }
+    
+    #[rstest]
+    fn test_deserialize_group(test_group: Group) {
+        println!("{}", serde_json::to_string(&test_group).unwrap());
+    }
+
+    #[rstest]
+    fn test_serialize_bulb(test_group: Group) {
+        let ser_group = serde_json::to_string(&test_group).unwrap();
+        dbg!(serde_json::from_str::<Group>(ser_group.as_str()).unwrap());
+    }
+
 }

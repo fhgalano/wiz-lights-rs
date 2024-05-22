@@ -12,6 +12,6 @@ serde = { version = "1.0.193", features = ["derive", "std"] }
 surrealdb = { version = "1.1.1", features = ["kv-mem"] }
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 async-trait = "0.1.79"
-erased-serde = "0.4.4"
+erased-serde = "0.4.5"
 typetag = "0.2.16"
 url = "2.5.0"
