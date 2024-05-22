@@ -61,12 +61,16 @@ impl Bulb {
     }
 
     fn send_message(&self, message: &[u8]) -> Response {
+        Bulb::_send_message(self.ip_address, message)
+    }
+    
+    fn _send_message(ip: IpAddr, message: &[u8]) -> Response {
         let sock = give_socket().unwrap();
         let mut buff = [0; 512];
 
-        let _ = sock.send_to(message, SocketAddr::new(self.ip_address, 38899));
-
-        match sock.recv_from(&mut buff) {
+        let _ = sock.send_to(message, SocketAddr::new(ip, 38899));
+        
+         match sock.recv_from(&mut buff) {
             Ok(received) => {
                 println!("from {}", received.1);
                 println!("{}", from_utf8(&buff[..received.0]).unwrap());
@@ -198,11 +202,11 @@ pub mod tests {
 
     #[rstest]
     fn test_bulb_on(test_bulb: Bulb) {
-        test_bulb.on();
+        assert!(test_bulb.on().unwrap());
     }
 
     #[rstest]
     fn test_bulb_off(test_bulb: Bulb) {
-        test_bulb.off();
+        assert!(test_bulb.off().unwrap());
     }
 }

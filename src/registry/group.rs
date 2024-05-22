@@ -276,7 +276,7 @@ pub(crate) mod tests {
             vec!(Box::new(test_bulb)),
         );
 
-        g.off();
+        assert!(g.off().unwrap());
     }
 
     #[rstest] fn test_group_on(test_bulb: Bulb) {
@@ -286,6 +286,6 @@ pub(crate) mod tests {
             vec!(Box::new(test_bulb)),
         );
 
-        g.on();
+        assert!(g.on().unwrap());
     }
 }
