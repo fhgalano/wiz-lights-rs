@@ -81,6 +81,31 @@ impl Bulb {
             },
         }
     }
+    
+    pub fn discover() -> Vec<Ipv4Addr>{
+        let message = serde_json::to_string(&GetPilot::default()).unwrap();
+        let ip = IpAddr::V4(Ipv4Addr::BROADCAST);
+        let sock = give_socket().unwrap();
+        let mut buff = [0; 512];
+
+        let _ = sock.send_to(message.as_bytes(), SocketAddr::new(ip, 38899));
+        let mut addrs: Vec<Ipv4Addr> = vec![];
+        while let Ok(received) = sock.recv_from(&mut buff) {
+            addrs.push(
+                match received.1.ip().clone() {
+                    IpAddr::V4(ip4) => {
+                        let [a, b, c, d] = ip4.octets();
+                        Ipv4Addr::new(a, b, c, d)
+                    },
+                    IpAddr::V6(ip6) => panic!("We should never hava an Ipv6 Address: {}", ip6)
+                }
+            );
+            info!("from {}", received.1);
+            info!("{}", from_utf8(&buff[..received.0]).unwrap());
+        };
+
+        addrs
+    }
 }
 
 impl On for Bulb {
@@ -208,5 +233,11 @@ pub mod tests {
     #[rstest]
     fn test_bulb_off(test_bulb: Bulb) {
         assert!(test_bulb.off().unwrap());
+    }
+
+    #[rstest]
+    fn test_discover() {
+        let socks = Bulb::discover();
+        dbg!(socks);
     }
 }
