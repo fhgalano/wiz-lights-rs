@@ -140,7 +140,8 @@ fn give_socket() -> Result<UdpSocket, Error> {
     // let port: u16 = 8080;
     let socket = UdpSocket::bind("0.0.0.0:0")?;
     socket.set_broadcast(true)?;
-    // .set_read_timeout(Duration::new(1, 0))?;
+    socket.set_read_timeout(Some(std::time::Duration::new(2, 0)))?;
+    socket.set_write_timeout(Some(std::time::Duration::new(3, 0)))?;
 
     Ok(socket)
 }
