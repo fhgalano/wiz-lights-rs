@@ -77,7 +77,8 @@ impl Bulb {
                 serde_json::from_slice(&buff[..received.0]).unwrap()
             },
             Err(e) => {
-                panic!("recv function failed: {e:?}");
+                dbg!(e);
+                Response::ER(ErrorResponse::default())
             },
         }
     }
@@ -109,7 +110,7 @@ impl Bulb {
 }
 
 impl On for Bulb {
-    fn on(&self) -> Result<bool, ErrorResponse> {
+    fn on(&mut self) -> Result<bool, ErrorResponse> {
         let response = self.set_pilot(SetPilot {
             method: String::from("setPilot"),
             params: SetPilotParams {
@@ -117,13 +118,15 @@ impl On for Bulb {
                 ..Default::default()
             }
         })?;
+        self.state = true;
+        dbg!(self.clone());
 
         Ok(response.result.success)
     }
 }
 
 impl Off for Bulb {
-    fn off(&self) -> Result<bool, ErrorResponse> {
+    fn off(&mut self) -> Result<bool, ErrorResponse> {
         let response = self.set_pilot(SetPilot {
             method: String::from("setPilot"),
             params: SetPilotParams {
@@ -131,6 +134,8 @@ impl Off for Bulb {
                 ..Default::default()
             }
         })?;
+        self.state = false;
+        dbg!(self.clone());
 
         Ok(response.result.success)
     }
@@ -227,12 +232,12 @@ pub mod tests {
     }
 
     #[rstest]
-    fn test_bulb_on(test_bulb: Bulb) {
+    fn test_bulb_on(mut test_bulb: Bulb) {
         assert!(test_bulb.on().unwrap());
     }
 
     #[rstest]
-    fn test_bulb_off(test_bulb: Bulb) {
+    fn test_bulb_off(mut test_bulb: Bulb) {
         assert!(test_bulb.off().unwrap());
     }
 

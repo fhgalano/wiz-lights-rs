@@ -35,9 +35,9 @@ impl fmt::Display for FunctionError {
 impl Error for FunctionError {}
 
 pub trait On {
-    fn on(&self) -> Result<bool, ErrorResponse>;
+    fn on(&mut self) -> Result<bool, ErrorResponse>;
 }
 
 pub trait Off {
-    fn off(&self) -> Result<bool, ErrorResponse>;
+    fn off(&mut self) -> Result<bool, ErrorResponse>;
 }

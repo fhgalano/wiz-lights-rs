@@ -93,8 +93,8 @@ impl PartialEq for Group {
 }
 
 impl On for Group {
-    fn on(&self) -> Result<bool, ErrorResponse> {
-        for i in self.collects.iter().clone() {
+    fn on(&mut self) -> Result<bool, ErrorResponse> {
+        for i in self.collects.iter_mut() {
             i.on()?;
         }
 
@@ -103,8 +103,8 @@ impl On for Group {
 }
 
 impl Off for Group {
-    fn off(&self) -> Result<bool, ErrorResponse> {
-        for i in self.collects.iter().clone() {
+    fn off(&mut self) -> Result<bool, ErrorResponse> {
+        for i in self.collects.iter_mut() {
             i.off()?;
         }
 
@@ -269,7 +269,7 @@ pub(crate) mod tests {
     }
 
     #[rstest] fn test_group_off(test_bulb: Bulb) {
-        let g = Group::new(
+        let mut g = Group::new(
             Id::from(22),
             "deez".to_string(),
             vec!(Box::new(test_bulb)),
@@ -279,7 +279,7 @@ pub(crate) mod tests {
     }
 
     #[rstest] fn test_group_on(test_bulb: Bulb) {
-        let g = Group::new(
+        let mut g = Group::new(
             Id::from(22),
             "deez".to_string(),
             vec!(Box::new(test_bulb)),

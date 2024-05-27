@@ -86,8 +86,8 @@ impl Registry {
         Err(GeneralError{msg: "Unable to find bulb by name".to_string()})
     }
 
-    pub fn turn_on_by_id(&self, id: Id) -> Result<bool, FunctionError> {
-        for i in self.bulbs.iter().clone() {
+    pub fn turn_on_by_id(&mut self, id: Id) -> Result<bool, FunctionError> {
+        for i in self.bulbs.iter_mut() {
             if Id::from(i._id.clone() as i32) == id {
                 return i.on().map_err(|e| {
                     FunctionError::new(
@@ -98,7 +98,7 @@ impl Registry {
             };
         }
 
-        for i in self.groups.iter() {
+        for i in self.groups.iter_mut() {
             if i._id == id {
                 return i.on().map_err(|e| {
                     FunctionError::new(
@@ -117,8 +117,8 @@ impl Registry {
         ))
     }
 
-    pub fn turn_off_by_id(&self, id: Id) -> Result<bool, FunctionError> {
-        for i in self.bulbs.iter().clone() {
+    pub fn turn_off_by_id(&mut self, id: Id) -> Result<bool, FunctionError> {
+        for i in self.bulbs.iter_mut() {
             if Id::from(i._id.clone() as i32) == id {
                 return i.off().map_err(|e| {
                     FunctionError::new(
@@ -129,7 +129,7 @@ impl Registry {
             };
         }
 
-        for i in self.groups.iter() {
+        for i in self.groups.iter_mut() {
             if i._id == id {
                 return i.off().map_err(|e| {
                     FunctionError::new(
@@ -172,6 +172,24 @@ async fn get_groups_from_db(db: &Surreal<Any>) -> surrealdb::Result<Vec<Group>> 
 
     Ok(groups)
 }
+
+#[derive(Debug)]
+pub struct GeneralError {
+    msg: String
+}
+
+impl fmt::Display for GeneralError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Yo dude, something wrong has happened - {}",
+            self.msg,
+        )
+    }
+}
+
+impl Error for GeneralError {}
+
 
 
 #[cfg(test)]
@@ -223,7 +241,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_turn_on_bulb_by_id(test_bulb: Bulb) {
         let t_id = Id::from(test_bulb._id.clone() as i32);
-        let registry = Registry {
+        let mut registry = Registry {
             db: create_memory_db().await,
             bulbs: vec![test_bulb],
             groups: vec![],
@@ -238,7 +256,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_turn_off_bulb_by_id(test_bulb: Bulb) {
         let t_id = Id::from(test_bulb._id.clone() as i32);
-        let registry = Registry {
+        let mut registry = Registry {
             db: create_memory_db().await,
             bulbs: vec![test_bulb],
             groups: vec![],
@@ -253,7 +271,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_turn_on_group_by_id(test_group: Group) {
         let t_id = test_group._id.clone();
-        let registry = Registry {
+        let mut registry = Registry {
             db: create_memory_db().await,
             bulbs: vec![],
             groups: vec![test_group],
@@ -268,7 +286,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_turn_off_group_by_id(test_group: Group) {
         let t_id = test_group._id.clone();
-        let registry = Registry {
+        let mut registry = Registry {
             db: create_memory_db().await,
             bulbs: vec![],
             groups: vec![test_group],
@@ -288,7 +306,7 @@ pub mod tests {
         
         assert_eq!(registry.bulbs, vec![test_bulb]);
     }
-    
+
     #[rstest]
     #[tokio::test]
     async fn test_add_group(test_bulb: Bulb) {
