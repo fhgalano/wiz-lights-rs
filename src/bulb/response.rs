@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fmt::Formatter;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetPilotResult {
@@ -61,7 +61,7 @@ impl Default for ErrorResponse {
             error: ErrorResult {
                 code: 69,
                 message: "unknown error detected".to_owned(),
-            }
+            },
         }
     }
 }
@@ -85,7 +85,10 @@ impl Response {
         match self {
             Response::GR(s) => Ok(s),
             Response::ER(s) => Err(s),
-            _ => Err(ErrorResponse::default()),
+            _ => {
+                dbg!(&self);
+                Err(ErrorResponse::default())
+            }
         }
     }
 
@@ -93,8 +96,10 @@ impl Response {
         match self {
             Response::SR(s) => Ok(s),
             Response::ER(s) => Err(s),
-            _ => Err(ErrorResponse::default()),
+            _ => {
+                dbg!(&self);
+                Err(ErrorResponse::default())
+            }
         }
     }
 }
-
