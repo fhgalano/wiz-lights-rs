@@ -1,19 +1,21 @@
-use std::io::Error;
-use std::net::{IpAddr, UdpSocket, SocketAddr, Ipv4Addr};
-use std::str::from_utf8;
 use std::default::Default;
+use std::io::Error;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use std::str::from_utf8;
 
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-use crate::utils::ip_addr_ser;
-use response::*;
-use method::*;
 pub use crate::function::{Off, On};
+use crate::utils::ip_addr_ser;
+use method::*;
+use response::*;
+use sourced_response::SourcedResponse;
 
-pub mod response;
 pub(crate) mod method;
-
+pub mod response;
+pub mod sourced_response;
 
 /// we really need to fix the serialization for the IpAddr
 /// This solution definitely works: https://github.com/surrealdb/surrealdb/issues/3301#issuecomment-1890672975
@@ -21,10 +23,7 @@ pub(crate) mod method;
 /// or try another solution, like using Ipv4Addr for everything
 /// I think I could also figure out a deserialization method for maps to help with surreal
 /// but I think the solution in the link above is the best one since surreal is jank AF apparently
-#[derive(
-    Debug, PartialEq, Clone,
-    Serialize, Deserialize
-)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Bulb {
     #[serde(with = "ip_addr_ser")]
     ip_address: IpAddr,
@@ -61,51 +60,75 @@ impl Bulb {
     }
 
     fn send_message(&self, message: &[u8]) -> Response {
-        Bulb::_send_message(self.ip_address, message)
-    }
-    
-    fn _send_message(ip: IpAddr, message: &[u8]) -> Response {
-        let sock = give_socket().unwrap();
-        let mut buff = [0; 512];
-
-        let _ = sock.send_to(message, SocketAddr::new(ip, 38899));
-        
-         match sock.recv_from(&mut buff) {
-            Ok(received) => {
-                println!("from {}", received.1);
-                println!("{}", from_utf8(&buff[..received.0]).unwrap());
-                serde_json::from_slice(&buff[..received.0]).unwrap()
-            },
+        match Self::_send_message(self.ip_address, message) {
+            Ok(r) => r,
             Err(e) => {
-                dbg!(e);
+                error!("Error in UDP Communication {}", e);
                 Response::ER(ErrorResponse::default())
-            },
+            }
         }
     }
-    
-    pub fn discover() -> Vec<Ipv4Addr>{
-        let message = serde_json::to_string(&GetPilot::default()).unwrap();
-        let ip = IpAddr::V4(Ipv4Addr::BROADCAST);
-        let sock = give_socket().unwrap();
+
+    fn _send_message(ip: IpAddr, message: &[u8]) -> anyhow::Result<Response> {
+        let sock = give_socket()?;
         let mut buff = [0; 512];
 
-        let _ = sock.send_to(message.as_bytes(), SocketAddr::new(ip, 38899));
-        let mut addrs: Vec<Ipv4Addr> = vec![];
-        while let Ok(received) = sock.recv_from(&mut buff) {
-            addrs.push(
-                match received.1.ip().clone() {
-                    IpAddr::V4(ip4) => {
-                        let [a, b, c, d] = ip4.octets();
-                        Ipv4Addr::new(a, b, c, d)
-                    },
-                    IpAddr::V6(ip6) => panic!("We should never hava an Ipv6 Address: {}", ip6)
-                }
-            );
-            info!("from {}", received.1);
-            info!("{}", from_utf8(&buff[..received.0]).unwrap());
-        };
+        sock.send_to(message, SocketAddr::new(ip, 38899));
 
-        addrs
+        Ok(Self::_poll_response(&sock, &mut buff)?.response)
+    }
+
+    fn _poll_response(socket: &UdpSocket, buff: &mut [u8]) -> anyhow::Result<SourcedResponse> {
+        let received = socket.recv_from(buff)?;
+
+        info!("from {}", received.1);
+        info!(
+            "{}",
+            from_utf8(&buff[..received.0]).unwrap_or("Error retreiving from buffer")
+        );
+
+        Ok(SourcedResponse {
+            source: match received.1.ip().clone() {
+                IpAddr::V4(ip4) => {
+                    let [a, b, c, d] = ip4.octets();
+                    Ipv4Addr::new(a, b, c, d)
+                }
+                IpAddr::V6(ip6) => {
+                    return Err(anyhow::anyhow!(
+                        "We should never hava an Ipv6 Address: {}",
+                        ip6
+                    ))
+                }
+            },
+            response: serde_json::from_slice(&buff[..received.0])?,
+        })
+    }
+
+    fn _poll_messages(ip: IpAddr, message: &[u8]) -> anyhow::Result<Vec<SourcedResponse>> {
+        let sock = give_socket()?;
+        let mut buff = [0; 512];
+
+        // TODO: is it possible to yield from a rust function? or do I need to make channels w/
+        // concurrency
+
+        sock.send_to(message, SocketAddr::new(ip, 38899))?;
+
+        let mut sourced_responses = vec![];
+        while let Ok(s) = Self::_poll_response(&sock, &mut buff) {
+            sourced_responses.push(s);
+        }
+        Ok(sourced_responses)
+    }
+
+    pub fn discover() -> Vec<Ipv4Addr> {
+        let message = serde_json::to_string(&GetPilot::default()).unwrap();
+        let ip = IpAddr::V4(Ipv4Addr::BROADCAST);
+
+        Self::_poll_messages(ip, message.as_bytes())
+            .unwrap_or(vec![])
+            .iter()
+            .map(|s| s.source)
+            .collect()
     }
 }
 
@@ -116,7 +139,7 @@ impl On for Bulb {
             params: SetPilotParams {
                 state: Some(true),
                 ..Default::default()
-            }
+            },
         })?;
         self.state = true;
         dbg!(self.clone());
@@ -132,7 +155,7 @@ impl Off for Bulb {
             params: SetPilotParams {
                 state: Some(false),
                 ..Default::default()
-            }
+            },
         })?;
         self.state = false;
         dbg!(self.clone());
@@ -154,44 +177,37 @@ fn give_socket() -> Result<UdpSocket, Error> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use rstest::{rstest, fixture};
-    use std::time::Duration;
+    use rstest::{fixture, rstest};
     use std::thread::sleep;
+    use std::time::Duration;
 
     #[fixture]
     pub fn test_bulb(
-        #[default(Ipv4Addr::new(192, 168, 68, 58))]
-        ip: Ipv4Addr,
-        #[default(0)]
-        id: u32,
+        #[default(Ipv4Addr::new(192, 168, 68, 70))] ip: Ipv4Addr,
+        #[default(0)] id: u32,
     ) -> Bulb {
-        Bulb::new(
-            IpAddr::V4(ip),
-            format!("test_bulb_{}", id),
-            id,
-        )
+        Bulb::new(IpAddr::V4(ip), format!("test_bulb_{}", id), id)
     }
 
     #[rstest]
     fn test_get_pilot(test_bulb: Bulb) {
         let message = test_bulb.get_pilot();
-        println!("{}", serde_json::to_string_pretty(&message.unwrap()).unwrap());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&message.unwrap()).unwrap()
+        );
         assert!(true);
     }
 
     #[rstest]
-    #[case(SetPilot::default(), r#"{"Err":{"method":"setPilot","error":{"code":-32600,"message":"Invalid Request"}}}"#)]
+    #[case(
+        SetPilot::default(),
+        r#"{"Err":{"method":"setPilot","error":{"code":-32600,"message":"Invalid Request"}}}"#
+    )]
     #[case(SetPilot { params: SetPilotParams { state: Some(true), ..Default::default()}, ..Default::default()}, r#"{"Ok":{"method":"setPilot","result":{"success":true}}}"#)]
-    fn test_set_pilot(
-        test_bulb: Bulb,
-        #[case] method: SetPilot,
-        #[case] expected_message: &str
-    ) {
+    fn test_set_pilot(test_bulb: Bulb, #[case] method: SetPilot, #[case] expected_message: &str) {
         let mymessage = test_bulb.set_pilot(method);
-        assert_eq!(
-            serde_json::to_string(&mymessage).unwrap(),
-            expected_message
-        );
+        assert_eq!(serde_json::to_string(&mymessage).unwrap(), expected_message);
     }
 
     #[rstest]
@@ -201,7 +217,7 @@ pub mod tests {
             params: SetPilotParams {
                 state: Some(true),
                 ..Default::default()
-            }
+            },
         });
         let mut state = test_bulb.get_state();
         assert_eq!(state.unwrap(), true);
@@ -213,7 +229,7 @@ pub mod tests {
             params: SetPilotParams {
                 state: Some(false),
                 ..Default::default()
-            }
+            },
         });
         state = test_bulb.get_state();
         assert_eq!(state.unwrap(), false);
@@ -222,7 +238,6 @@ pub mod tests {
     #[rstest]
     fn test_deserialize_bulb(test_bulb: Bulb) {
         println!("{}", serde_json::to_string(&test_bulb).unwrap());
-
     }
 
     #[rstest]
